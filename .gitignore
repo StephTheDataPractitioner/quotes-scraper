@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Logs and output
+scraping_progress.log
+*.json
+
+# IDE folders (optional)
+.vscode/
+*.idea/
+
+# Spider scripts not to commit
+quotes_project/spiders/quotefirstpag.py
+quotes_project/spiders/quotest.py
