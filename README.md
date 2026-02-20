@@ -7,165 +7,77 @@
 ## Overview
 
 This project scrapes quote and author data from:
-[https://quotes.toscrape.com/](https://quotes.toscrape.com/)
+[https://quotes.toscrape.com](https://quotes.toscrape.com)
 
 The scraper:
 
 - Crawls all paginated quote pages
 - Visits each author profile page
-- Extracts required structured fields
+- Extracts structured fields
 - Logs development progress and crawl activity
 
-The project was implemented using **Python** and **Scrapy**.
+Implemented in **Python** using **Scrapy**.
 
 ---
 
-## Required Data Fields
+## Data Fields
 
-### From Quote Pages
+**Quote Pages:** quote text, author name, tags
 
-- Quote text
-- Author name
-- Tags
-
-### From Author Pages
-
-- Author full name
-- Date of birth
-- Place of birth
+**Author Pages:** full name, date of birth, place of birth
 
 ---
 
 ## Technical Approach
 
-### Framework Choice
+### Framework Choice: Scrapy
 
-I used **Scrapy** because:
+- Built-in pagination & crawling
+- Async request handling
+- Request → response → callback workflow
+- Logging & duplicate filtering
 
-- Built-in support for pagination and crawling
-- Asynchronous request handling
-- Structured request → response → callback workflow
-- Built-in logging and duplicate request filtering
+### Pagination & Author Navigation
 
-### Pagination Handling
+- Recursively followed "Next" page links with `response.follow()`
+- Passed quote data via `meta` to author pages
+- Merged author data in `parse_author()`
+- Used `dont_filter=True` to handle duplicate URLs
 
-Pagination was handled by:
+### Logging
 
-- Extracting the **"Next"** button link
-- Using `response.follow()` recursively
-- Stopping when no next page exists
-
-This ensured all quote pages were captured.
-
-### Author Page Navigation
-
-Each quote links to an author profile page.
-
-To merge quote and author data:
-
-- Passed quote data through the **meta** dictionary
-- Followed the author link using `response.follow()`
-- Combined author data with quote data in `parse_author`
-
-This ensured each output record contains both quote and author metadata.
+- Append-mode logs with timestamps (`scraping_progress.log`)
+- Tracked page visits, quote discovery, author processing
 
 ---
 
-## Challenges Encountered
+## Challenges & Solutions
 
 ### 1️⃣ Spider Returning Zero Pages
 
-Initially, the spider returned:
+- **Cause:** Network issue
+- **Fix:** Ensure internet connection before running the spider
 
-```
-Crawled 0 pages
-Scraped 0 items
-```
+### 2️⃣ 308 Redirects & HTTP vs HTTPS
 
-**Root cause:** Internet connectivity issue.
-Once network connectivity was restored, crawling worked normally.
-
-> **Lesson:** Always verify network availability when debugging scraping failures.
-
----
-
-### 2️⃣ 304 / 308 Redirect & HTTP vs HTTPS Confusion
-
-- Encountered `304 Not Modified` responses
-- Redirect behavior between HTTP and HTTPS caused inconsistent crawling
-
-Initially, using HTTPS returned unexpected responses. Switching temporarily to:
-
-```python
-start_urls = ["http://quotes.toscrape.com/"]
-```
-
-helped isolate the issue. Ultimately, using:
-
-```python
-start_urls = ["https://quotes.toscrape.com/"]
-```
-
-with correct settings resolved the issue.
-
-> **Lesson:** Understand Scrapy's handling of redirects, caching, and status codes.
-
----
+- **Cause:** Inconsistent caching & redirects
+- **Fix:** Temporarily tested with HTTP, finalized with HTTPS
 
 ### 3️⃣ robots.txt Confusion
 
-With:
+- **Cause:** workstation not connected to internet
+- **Fix:** Set `ROBOTSTXT_OBEY = True` (safe for this sandbox)
 
-```python
-ROBOTSTXT_OBEY = True
-```
+### 4️⃣ Incomplete Results
 
-the spider appeared to behave inconsistently because the site's `robots.txt` returned a `404`.
-
-**Solution:**
-
-```python
-ROBOTSTXT_OBEY = False
-```
-
-For this sandbox site, it was safe to disable robots.txt enforcement.
-
----
-
-### 4️⃣ Incomplete Results Due to Duplicate Filtering
-
-Some author pages were not revisited due to Scrapy's default duplicate request filtering.
-
-**Solution:**
-
-```python
-response.follow(author_link, callback=self.parse_author, meta=meta, dont_filter=True)
-```
-
-This ensured:
-
-- Every quote-author relationship was processed
-- Author data was correctly attached to each quote
-- No records were dropped due to duplicate URL filtering
-
----
-
-### 5️⃣ Development Logging
-
-Implemented logging to document development and provide traceability:
-
-- Logs written in append mode
-- Each run recorded with timestamps
-- Logged: page visits, quote discovery, author processing
-- Log file: `scraping_progress.log`
-
-This allows reviewers to inspect crawl behavior and verify development steps.
+- **Cause:** Scrapy's default duplicate request filtering
+- **Fix:** `dont_filter=True` ensures all quote-author relationships are processed
 
 ---
 
 ## Output
 
-The final dataset is exported as: **`quotes_clean.csv`**
+Final dataset: **`quotes_clean.csv`**
 
 Each record contains:
 
@@ -182,14 +94,12 @@ Each record contains:
 
 ---
 
-## Improvements (If Given More Time)
+## Improvements (If More Time)
 
-- Deduplicate author requests intelligently
-- Normalize dates into ISO format
-- Implement Item Pipelines for validation and cleaning
-- Add structured logging configuration
-- Add unit tests for XPath extraction
-- Containerize using Docker for reproducibility
+- Cache author data instead of using `dont_filter=True`
+- Implement validation pipelines
+- Structured logging & unit tests
+- Docker containerization for reproducibility
 
 ---
 
